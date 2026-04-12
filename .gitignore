@@ -1,0 +1,24 @@
+# Audio dataset (large binary files — store separately or use Git LFS)
+raw_audio/
+
+# PyTorch model weights
+scripts/model/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Claude Code local settings
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
