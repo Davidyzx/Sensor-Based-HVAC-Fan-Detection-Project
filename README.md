@@ -180,50 +180,62 @@ inference models on the collected 180-sample dataset.
 ## Repository Structure
 
 ```
-Sensor Project/
+Sensor-Based-HVAC-Fan-Detection-Project/
 │
-├── README.md                          # This file
+├── README.md
+├── .gitignore
+├── Proposal For Sensor Based System.pdf
 │
-├── scripts/                           # All source code
-│   ├── ESP32_INMP41.ino               # ESP32 firmware — I2S audio capture, real-time serial output
-│   ├── record_audio.py                # Dataset recording utility (USB mic → structured WAV files)
-│   ├── baseline_runner_custom.py      # Model inference: feature extraction + autoencoder evaluation
-│   ├── analysis_visualization.py      # Generate analysis plots from evaluation results
-│   ├── checkpth.py                    # Inspect PyTorch model checkpoint structure
-│   └── model/                         # Pre-trained autoencoder weights
-│       ├── baseline_fan_id_00.pth
-│       ├── baseline_fan_id_02.pth
-│       ├── baseline_fan_id_04.pth
-│       └── baseline_fan_id_06.pth
+├── scripts/                                  # All source code
+│   ├── esp32-mic-wifi/                       # ESP32 + INMP441 WiFi streaming (Checkpoint 3 edge work)
+│   │
+│   ├── ESP32_INMP41.ino                      # ESP32 firmware — I2S audio capture, serial output
+│   ├── record_audio.py                       # Dataset recording utility (USB mic → structured WAV)
+│   ├── baseline_runner_custom.py             # Stage 0 — frozen AE inference (MIMII id_04 → our data)
+│   ├── finetune_and_evaluate.py              # Stage 1 — fine-tune + LeakyReLU + 3-class via RF
+│   ├── stage2_domain_adversarial.py          # Stage 2 — DANN-MTL (rec + cls + domain adversarial)
+│   ├── analysis_visualization.py             # Generate MSE / threshold analysis plots
+│   ├── checkpth.py                           # Inspect PyTorch checkpoint structure
+│   │
+│   └── model/                                # Pretrained + fine-tuned autoencoder weights
+│       ├── baseline_fan_id_04.pth            # Stage 0 — MIMII id_04 pretrained
+│       ├── finetuned_leakyrelu_id_04.pth     # Stage 1 — fine-tuned (LeakyReLU at bottleneck)
+│       └── stage2_domain_adversarial_id_04.pth  # Stage 2 — DANN-MTL
 │
-├── raw_audio/                         # Audio dataset (180 WAV files, 16 kHz, mono, 10 s each)
-│   ├── normal/                        # Normal fan operation
-│   │   ├── 4V/ ├── quiet/  └── noise/
-│   │   ├── 8V/ ├── quiet/  └── noise/
-│   │   └── 12V/├── quiet/  └── noise/
-│   ├── blocked/                       # Abnormal: air filter blocked
-│   │   ├── 4V/ ├── quiet/  └── noise/
-│   │   ├── 8V/ ├── quiet/  └── noise/
-│   │   └── 12V/├── quiet/  └── noise/
-│   └── imbalance/                     # Abnormal: fan blade imbalance
-│       ├── 4V/ ├── quiet/  └── noise/
-│       ├── 8V/ ├── quiet/  └── noise/
-│       └── 12V/├── quiet/  └── noise/
+├── raw_audio/                                # 180 WAV files: 16 kHz, mono, 10 s
+│   ├── normal/    {4V,8V,12V}/{quiet,noise}/*.wav
+│   ├── blocked/   {4V,8V,12V}/{quiet,noise}/*.wav
+│   └── imbalance/ {4V,8V,12V}/{quiet,noise}/*.wav
 │
-├── analysis/                          # Inference results and visualizations
-│   ├── baseline_eval_id_06.csv        # Per-file MSE scores, true labels, and predictions
-│   ├── baseline_mse_results_id04.csv  # Raw MSE results for model id_04
-│   ├── baseline_mse_results_id_06.csv # Raw MSE results for model id_06
-│   └── figures/                       # Generated plots (PNG, 300 DPI)
-│       ├── mse_distribution.png       # MSE histogram: normal vs abnormal
-│       ├── mse_boxplot.png            # MSE boxplot by true label
-│       ├── mse_by_condition.png       # MSE by fault condition
-│       ├── mse_by_voltage.png         # MSE by fan voltage (4V / 8V / 12V)
-│       ├── mse_noise_vs_quiet.png     # MSE: quiet vs noisy environment
-│       └── threshold_comparison.png   # Original vs optimized threshold
+├── analysis/                                 # Evaluation results & visualizations
+│   ├── baseline_eval_id_06.csv               # Stage 0 — per-file MSE + labels (id_06 model)
+│   ├── baseline_mse_results_id04.csv         # Stage 0 — raw MSE (id_04 model)
+│   ├── baseline_mse_results_id_06.csv        # Stage 0 — raw MSE (id_06 model)
+│   │
+│   └── figures/                              # 15 plots (PNG, 300 DPI)
+│       │   # --- Stage 0 baseline diagnostics ---
+│       ├── mse_distribution.png              # MSE histogram: normal vs abnormal
+│       ├── mse_boxplot.png                   # MSE boxplot by true label
+│       ├── mse_by_condition.png              # MSE by fault condition
+│       ├── mse_by_voltage.png                # MSE by fan voltage
+│       ├── mse_noise_vs_quiet.png            # MSE by acoustic environment
+│       ├── threshold_comparison.png          # Original 7.01 vs optimized threshold
+│       │
+│       │   # --- Stage 1 fine-tune (LeakyReLU) ---
+│       ├── training_curves_finetuned.png     # Train/val loss during fine-tune
+│       ├── tsne_by_condition_finetuned.png   # Latent t-SNE by condition
+│       ├── tsne_by_voltage_finetuned.png     # Latent t-SNE by voltage
+│       ├── tsne_by_noise_finetuned.png       # Latent t-SNE by noise env
+│       ├── confusion_matrix_id_04.png        # 3-class RF confusion matrix
+│       │
+│       │   # --- Stage 2 DANN-MTL ---
+│       ├── training_curves_stage2_dann.png   # rec/cls/adv losses + cls/dom acc
+│       ├── tsne_target_condition_stage2_dann.png  # Target latent by condition
+│       ├── tsne_domain_mix_stage2_dann.png   # Source vs target mixing (domain invariance check)
+│       └── stage_comparison_stage2_dann.png  # Stage 0/1/2 side-by-side (5 metrics)
 │
 └── metadata/
-    └── recording_log.csv              # Recording metadata: filename, condition, voltage, noise, device
+    └── recording_log.csv                     # Recording metadata per file
 ```
 
 ---
