@@ -142,12 +142,29 @@ The firmware is functional. It configures the I2S interface to read from the INM
 
 ---
 
-### Checkpoint 3 (Milestone 3) — Edge Component + Backend *(Planned)*
+### Checkpoint 3 (Milestone 3) — Backend — ML Inference Engine
 
-- Define and implement edge component (MQTT broker on laptop or Raspberry Pi)
-- Set up time-series database (InfluxDB or SQLite)
-- Build visualization dashboard (Grafana or custom web UI)
-- Complete SD card integration on ESP32 for full embedded pipeline
+**Status: Completed (backend track, 3 model stages)**
+
+Instead of the originally-planned InfluxDB+Grafana pipeline,
+I delivered a ML-centric backend: three progressively stronger
+inference models on the collected 180-sample dataset.
+
+| Stage | Approach | Binary AUC | 3-class Acc | Notes |
+|---|---|---|---|---|
+| Stage 0 | Frozen MIMII id_04 AE | 0.769 | 95% (RF on z) | severe domain shift |
+| Stage 1 | Fine-tune + LeakyReLU | 0.997 | 95% (RF on z) | recovers src-domain threshold |
+| Stage 2 | Domain-Adversarial MTL | 1.000 | **100% (end-to-end)** | joint rec+cls+adv loss |
+
+**Backend deliverables:**
+- `scripts/baseline_runner_custom.py` — Stage 0 inference
+- `scripts/finetune_and_evaluate.py` — Stage 1 fine-tune
+- `scripts/stage2_domain_adversarial.py` — Stage 2 DANN-MTL
+- `analysis/` — full evaluation CSVs + 20+ figures
+
+**Known limitations (Plan to address in Checkpoint 4):**
+- ESP32 + INMP441 hardware path still has signal distortion
+  (suspected unsoldered connections) — USB mic used as proxy
 
 ---
 
